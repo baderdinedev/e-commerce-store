@@ -1,32 +1,55 @@
 import Product from "../models/product.model.js"
 
+export const getAllProducts = async (req, res) => {
+    try {
+        const { search, minPrice, maxPrice, category, isFeatured, sortBy, sortOrder } = req.query;
+        const query = {};
+
+        if (search) {
+            query.name = { $regex: search, $options: 'i' };  
+        }
+
+        if (minPrice || maxPrice) {
+            query.price = {};
+            if (minPrice) query.price.$gte = minPrice;
+            if (maxPrice) query.price.$lte = maxPrice;
+        }
+
+        if (category) {
+            query.category = { $regex: category, $options: 'i' };  
+        }
+
+        if (isFeatured !== undefined) {
+            query.isFeatured = isFeatured === 'true'; 
+        }
+
+        // Sort functionality
+        const sort = {};
+        if (sortBy && sortOrder) {
+            sort[sortBy] = sortOrder === 'asc' ? 1 : -1;  
+        }
 
 
+        const products = await Product.find(query).sort(sort);
 
-export const getAllProducts = async (req, res)  => {
-    try{
-
-        const products = await Product.find()
-
-        if(!products.length){
+        if (!products.length) {
             return res.status(404).json({
-                message: "No products found"
-            })
+                message: "No products found matching your criteria"
+            });
         }
 
         res.status(200).json({
             success: true,
             count: products.length,
             data: products,
-        })
+        });
 
-
-    }catch (error)
-    {
+    } catch (error) {
         console.error("Error fetching products:", error);
         res.status(500).json({ message: "Server error, please try again later" });
     }
-}
+};
+
 
 export const addNewProduct = async (req, res) => {
     try {
@@ -115,5 +138,104 @@ export const deleteProduct = async (req, res) => {
     } catch (error) {
         console.error("Error deleting product:", error);
         res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+export const getFeaturedProducts = async (req, res) => {
+    try {
+        const featuredProducts = await Product.find({ isFeatured: true });
+
+        if (!featuredProducts.length) {
+            return res.status(404).json({ message: "No featured products found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: featuredProducts.length,
+            data: featuredProducts,
+        });
+    } catch (error) {
+        console.error("Error fetching featured products:", error);
+        res.status(500).json({ message: "Server error, please try again later" });
+    }
+};
+
+
+export const getRecommendedProducts = async (req, res) => {
+    try {
+        const recommendedProducts = await Product.find({ isFeatured: false });
+
+        if (!recommendedProducts.length) {
+            return res.status(404).json({ message: "No recommended products found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: recommendedProducts.length,
+            data: recommendedProducts,
+        });
+    } catch (error) {
+        console.error("Error fetching recommended products:", error);
+        res.status(500).json({ message: "Server error, please try again later" });
+    }
+};
+
+
+// Review : 
+
+export const addReview = async (req, res) => {
+    try {
+        const { productId } = req.params;  
+        const { rating, comment } = req.body;  
+
+        const userId = req.user._id;  
+ 
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        const newReview = {
+            rating,
+            comment,
+            user: userId,
+        };
+ 
+        product.reviews.push(newReview);
+ 
+        await product.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Review added successfully",
+            data: product,
+        });
+
+    } catch (error) {
+        console.error("Error adding review:", error);
+        res.status(500).json({ message: "Server error, please try again later" });
+    }
+};
+
+
+export const getReviews = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+
+        const product = await Product.findById(productId).populate("reviews.user", "name email");
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: product.reviews,
+        });
+
+    } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).json({ message: "Server error, please try again later" });
     }
 };

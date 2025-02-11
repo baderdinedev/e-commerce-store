@@ -5,7 +5,7 @@ import productRoutes from "./routes/product.route.js"
 import  connectDb from "./lib/db.js"
 import cookieParser from "cookie-parser";
 
-import swaggerDocs from "./swagger.js"; 
+// import swaggerDocs from "./swagger.js"; 
 
 dotenv.config()
 
@@ -13,7 +13,7 @@ const app = express()
 app.use(express.json());
 app.use(cookieParser()); 
 
-swaggerDocs(app);
+// swaggerDocs(app);
 
 const PORT = process.env.PORT || 5000
 

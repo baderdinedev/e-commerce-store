@@ -1,5 +1,27 @@
 import mongoose from "mongoose";
 
+const reviewSchema = new mongoose.Schema(
+    {
+        rating: {
+            type: Number,
+            required: true,
+            min: 1,
+            max: 5, 
+        },
+        comment: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",  
+            required: true,
+        },
+    },
+    { timestamps: true }
+);
+
 const productSchema = new mongoose.Schema(
     {
         name: {
@@ -29,9 +51,30 @@ const productSchema = new mongoose.Schema(
             required: [true, "Product category is required"],
             trim: true,
         },
+        reviews: [reviewSchema],  
+        averageRating: {
+            type: Number,
+            default: 0,
+        }, 
     },
-    { timestamps: true }  
+    { timestamps: true }
 );
+
+ 
+productSchema.methods.updateAverageRating = function () {
+    if (this.reviews.length === 0) {
+        this.averageRating = 0;
+    } else {
+        const totalRating = this.reviews.reduce((acc, review) => acc + review.rating, 0);
+        this.averageRating = totalRating / this.reviews.length;
+    }
+};
+
+ 
+productSchema.pre('save', function (next) {
+    this.updateAverageRating();
+    next();
+});
 
 const Product = mongoose.model("Product", productSchema);
 
