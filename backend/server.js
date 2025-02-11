@@ -31,4 +31,3 @@ app.listen(PORT, () => {
     connectDb()
 });
 
-// P5J0y1b4dWUYoJLS
