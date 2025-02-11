@@ -63,6 +63,7 @@ const productSchema = new mongoose.Schema(
  
 productSchema.methods.updateAverageRating = function () {
     if (this.reviews.length === 0) {
+     //   console.log(this.reviews.length)
         this.averageRating = 0;
     } else {
         const totalRating = this.reviews.reduce((acc, review) => acc + review.rating, 0);
