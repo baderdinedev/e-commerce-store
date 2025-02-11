@@ -123,6 +123,7 @@ export const login = async (req, res, next) => {
         // Send the response
         res.status(200).json({
             message: "Login successful",
+            tokens: { accessToken, refreshToken },
             user: {
                 id: user._id,
                 name: user.name,
@@ -164,3 +165,53 @@ export const logout = async (req, res, next) => {
         next(error);
     }
 };
+
+
+export const refreshTokens = async (req, res) => {
+    try {
+        // Get the refresh token from cookies
+        const refreshToken = req.cookies.refreshToken;
+
+        // Check if the refresh token exists
+        if (!refreshToken) {
+            return res.status(401).json({ message: "No refresh token provided" });
+        }
+
+        // Verify the refresh token
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        // Check if the refresh token exists in Redis
+        const storedToken = await redis.get(decoded.userId.toString());
+        if (storedToken !== refreshToken) {
+            return res.status(401).json({ message: "Invalid refresh token" });
+        }
+
+        // Generate a new access token
+        const accessToken = jwt.sign(
+            { userId: decoded.userId },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN }
+        );
+
+        // Set the new access token in cookies
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 15 * 60 * 1000, // 15 minutes
+        });
+
+        // Send the new access token in the response
+        res.status(200).json({
+            message: "Token refreshed successfully",
+            accessToken,
+        });
+    } catch (error) {
+        res.status(401).json({ message: "Invalid refresh token" });
+    }
+}
+
+// the logique to display profile User info
+// export const getProfile = async (req,res) => {
+
+// }
